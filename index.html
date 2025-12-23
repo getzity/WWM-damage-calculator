@@ -1,193 +1,100 @@
 <!doctype html>
-<html lang="en">
+<html lang="th">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Damage Simulation (Graph Logic)</title>
+  <title>Damage Calculator (Precision/Crit/Affinity/Abrasion)</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; line-height: 1.35; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
-    label { display:block; font-size: 12px; opacity: .85; margin-bottom: 6px; }
-    input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 10px; }
-    .card { border: 1px solid #eee; border-radius: 14px; padding: 14px; }
-    button { padding: 10px 14px; border: 0; border-radius: 12px; cursor: pointer; }
-    .row { display:flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-    pre { background:#0b0f19; color:#e6edf3; padding: 14px; border-radius: 14px; overflow:auto; }
-    .hint { font-size: 12px; opacity: .8; }
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:24px;line-height:1.35}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+    .card{border:1px solid #eee;border-radius:14px;padding:14px}
+    label{display:block;font-size:12px;opacity:.85;margin:10px 0 6px}
+    input{width:100%;padding:10px;border:1px solid #ddd;border-radius:12px}
+    button{padding:10px 14px;border:0;border-radius:12px;cursor:pointer}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+    .big{font-size:28px;font-weight:800}
+    .muted{opacity:.75;font-size:12px}
+    pre{background:#0b0f19;color:#e6edf3;padding:14px;border-radius:14px;overflow:auto}
+    .pill{display:inline-block;padding:3px 10px;border-radius:999px;border:1px solid #ddd;font-size:12px}
   </style>
 </head>
 <body>
-  <h1>Damage Simulation</h1>
-  <p class="hint">Implements the flow from your diagram: Precision vs Non-Precision, Crit, Affinity (max-roll), Abrasion (50% min), optional Abrasion→Normal conversion.</p>
+  <h1>เว็บคำนวณดาเมจ (ตามกราฟ)</h1>
+  <p class="muted">
+    คำนวณ Expected Damage ต่อ 1 hit จาก Min–Max + Precision/Crit/Affinity/Abrasion
+    (Affinity ใช้ Max roll แล้วคูณ, Crit คูณ, Abrasion = 50% ของ Min, Conversion แปลง Abrasion เป็น Normal)
+  </p>
 
   <div class="grid">
     <div class="card">
-      <h3>Base Roll</h3>
-      <label>Min dmg</label><input id="minDmg" type="number" value="500" />
-      <label>Max dmg</label><input id="maxDmg" type="number" value="1000" />
+      <h3>Base Damage</h3>
+      <label>Physical Attack (Min)</label>
+      <input id="minDmg" type="number" value="623" />
+
+      <label>Physical Attack (Max)</label>
+      <input id="maxDmg" type="number" value="1013" />
+
+      <label>Attribute Attack DMG Bonus (%)</label>
+      <input id="attrBonus" type="number" step="0.1" value="3.4" />
+      <div class="muted">ถ้าไม่มี ให้ใส่ 0</div>
     </div>
 
     <div class="card">
       <h3>Rates</h3>
-      <label>Precision rate (0-1)</label><input id="precisionRate" type="number" step="0.01" value="0.70" />
-      <label>Crit rate (precision) (0-1)</label><input id="critRateP" type="number" step="0.01" value="0.80" />
-      <label>Affinity rate (precision) (0-1)</label><input id="affRateP" type="number" step="0.01" value="0.40" />
-      <label>Affinity rate (non-precision) (0-1)</label><input id="affRateNP" type="number" step="0.01" value="0.40" />
-      <label>Abrasion rate (non-precision) (0-1)</label><input id="abrRateNP" type="number" step="0.01" value="0.10" />
-      <label>Abrasion → Normal convert rate (0-1)</label><input id="abrConvert" type="number" step="0.01" value="0.50" />
+
+      <label>Precision Rate (%)</label>
+      <input id="precisionRate" type="number" step="0.1" value="94.2" />
+
+      <label>Critical Rate (%)</label>
+      <input id="critRate" type="number" step="0.1" value="40.0" />
+
+      <label>Affinity Rate (%)</label>
+      <input id="affRate" type="number" step="0.1" value="10.8" />
+
+      <label>Abrasion Rate (%)</label>
+      <input id="abrRate" type="number" step="0.1" value="0" />
+      <div class="muted">ในสเตตัสคุณยังไม่เห็นตัวนี้ เลยให้กรอกเอง</div>
+
+      <label>Abrasion Conversion Rate (%)</label>
+      <input id="abrConvert" type="number" step="0.1" value="0" />
     </div>
 
     <div class="card">
       <h3>Multipliers</h3>
-      <label>Crit multiplier</label><input id="critMult" type="number" step="0.01" value="1.50" />
-      <label>Affinity multiplier</label><input id="affMult" type="number" step="0.01" value="1.35" />
-      <label>Abrasion dmg factor of min</label><input id="abrMinFactor" type="number" step="0.01" value="0.50" />
-      <label>Affinity uses max roll? (1=yes, 0=no)</label><input id="affUsesMax" type="number" step="1" value="1" />
+
+      <label>Critical DMG Bonus (%)</label>
+      <input id="critBonus" type="number" step="0.1" value="50.0" />
+
+      <label>Affinity DMG Bonus (%)</label>
+      <input id="affBonus" type="number" step="0.1" value="35.0" />
+
+      <label>Abrasion Damage = % of Min Roll</label>
+      <input id="abrMinFactor" type="number" step="0.01" value="0.50" />
+
+      <label>Affinity uses Max roll? (1 = ใช่, 0 = ไม่ใช่)</label>
+      <input id="affUsesMax" type="number" step="1" value="1" />
     </div>
 
     <div class="card">
-      <h3>Run</h3>
-      <label>Iterations</label><input id="iters" type="number" value="200000" />
-      <div class="row" style="margin-top:12px;">
-        <button id="runBtn">Simulate</button>
-        <button id="oneBtn">One Hit</button>
+      <h3>ผลลัพธ์</h3>
+      <div class="pill">Expected Damage / Hit</div>
+      <div id="expected" class="big">—</div>
+      <div class="muted" id="notes"></div>
+
+      <div class="row">
+        <button id="calcBtn">คำนวณ</button>
+        <button id="copyBtn">คัดลอกผล</button>
       </div>
-      <p class="hint">Tip: 200k–1M iterations gives a stable expected damage.</p>
     </div>
   </div>
 
-  <h3>Output</h3>
-  <pre id="out">Click “Simulate” to see results…</pre>
+  <h3>รายละเอียดการคำนวณ</h3>
+  <pre id="debug">กด “คำนวณ” เพื่อดูรายละเอียด…</pre>
 
 <script>
-  // ---- Utilities ----
-  function clamp01(x){ return Math.max(0, Math.min(1, x)); }
-  function randInt(min, max, rng=Math.random){
-    return Math.floor(rng() * (max - min + 1)) + min;
-  }
+  // ---------- helpers ----------
+  function pctTo01(x){ return Math.max(0, Math.min(1, Number(x)/100)); }
+  function num(x){ return Number(x); }
 
-  // ---- Core logic (mirrors the Python version) ----
-  function calcOneHit(p, rng=Math.random){
-    const flags = {
-      precision:false, crit:false, affinity:false,
-      abrasion:false, abrasionConverted:false
-    };
-
-    flags.precision = rng() < p.precisionRate;
-
-    // Precision hit
-    if(flags.precision){
-      const baseRoll = randInt(p.minDmg, p.maxDmg, rng);
-      flags.crit = rng() < p.critRateP;
-      flags.affinity = rng() < p.affRateP;
-
-      const base = (flags.affinity && p.affinityUsesMax) ? p.maxDmg : baseRoll;
-
-      let dmg = base;
-      if(flags.crit) dmg *= p.critMult;
-      if(flags.affinity) dmg *= p.affMult;
-
-      return { dmg: Math.round(dmg), flags };
-    }
-
-    // Non-precision hit
-    flags.abrasion = rng() < p.abrRateNP;
-    if(flags.abrasion){
-      flags.abrasionConverted = rng() < p.abrConvert;
-      if(!flags.abrasionConverted){
-        const dmg = p.minDmg * p.abrMinFactor;
-        return { dmg: Math.round(dmg), flags };
-      }
-      // converted -> continue as normal roll path
-    }
-
-    flags.affinity = rng() < p.affRateNP;
-    if(flags.affinity && p.affinityUsesMax){
-      const dmg = p.maxDmg * p.affMult;
-      return { dmg: Math.round(dmg), flags };
-    }
-
-    const dmg = randInt(p.minDmg, p.maxDmg, rng);
-    return { dmg, flags };
-  }
-
-  function simulate(p, n){
-    let total = 0;
-    const counts = {
-      precision:0, nonprecision:0, crit:0, affinity:0, crit_and_affinity:0,
-      abrasion:0, abrasion_converted:0
-    };
-
-    for(let i=0;i<n;i++){
-      const { dmg, flags } = calcOneHit(p);
-      total += dmg;
-
-      if(flags.precision) counts.precision++; else counts.nonprecision++;
-      if(flags.crit) counts.crit++;
-      if(flags.affinity) counts.affinity++;
-      if(flags.crit && flags.affinity) counts.crit_and_affinity++;
-      if(flags.abrasion) counts.abrasion++;
-      if(flags.abrasionConverted) counts.abrasion_converted++;
-    }
-
-    const res = {
-      expected_damage: total / n,
-      rate_precision: counts.precision / n,
-      rate_nonprecision: counts.nonprecision / n,
-      rate_crit: counts.crit / n,
-      rate_affinity: counts.affinity / n,
-      rate_crit_and_affinity: counts.crit_and_affinity / n,
-      rate_abrasion: counts.abrasion / n,
-      rate_abrasion_converted: counts.abrasion_converted / n
-    };
-    return res;
-  }
-
-  function readParams(){
-    const minDmg = Number(document.getElementById('minDmg').value);
-    const maxDmg = Number(document.getElementById('maxDmg').value);
-
-    return {
-      minDmg,
-      maxDmg,
-      precisionRate: clamp01(Number(document.getElementById('precisionRate').value)),
-      critRateP: clamp01(Number(document.getElementById('critRateP').value)),
-      affRateP: clamp01(Number(document.getElementById('affRateP').value)),
-      affRateNP: clamp01(Number(document.getElementById('affRateNP').value)),
-      abrRateNP: clamp01(Number(document.getElementById('abrRateNP').value)),
-      abrConvert: clamp01(Number(document.getElementById('abrConvert').value)),
-      critMult: Number(document.getElementById('critMult').value),
-      affMult: Number(document.getElementById('affMult').value),
-      abrMinFactor: Number(document.getElementById('abrMinFactor').value),
-      affinityUsesMax: Number(document.getElementById('affUsesMax').value) === 1
-    };
-  }
-
-  function format(obj){
-    return Object.entries(obj)
-      .map(([k,v]) => `${k}: ${typeof v === 'number' ? v.toFixed(6) : v}`)
-      .join('\n');
-  }
-
-  // ---- UI wiring ----
-  const out = document.getElementById('out');
-
-  document.getElementById('runBtn').addEventListener('click', () => {
-    const p = readParams();
-    const n = Math.max(1, Number(document.getElementById('iters').value) || 200000);
-    out.textContent = "Running…";
-    // Let the UI update before blocking
-    setTimeout(() => {
-      const res = simulate(p, n);
-      out.textContent = `Iterations: ${n}\n\n` + format(res);
-    }, 10);
-  });
-
-  document.getElementById('oneBtn').addEventListener('click', () => {
-    const p = readParams();
-    const { dmg, flags } = calcOneHit(p);
-    out.textContent = `One hit damage: ${dmg}\nFlags: ${JSON.stringify(flags, null, 2)}`;
-  });
-</script>
-</body>
-</html>
+  // Expected multiplier for crit:
+  // E[mult] = (1-p)*1 + p*(1+c
